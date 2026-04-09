@@ -204,6 +204,8 @@ func onReady(q *rdpwall.Quantom) {
 		isStartupEnabled(),
 	)
 	systray.AddSeparator()
+	mUnbanAll := systray.AddMenuItem("Unban All", "Remove all firewall blocks created by RdpWall")
+	systray.AddSeparator()
 	mExit := systray.AddMenuItem("Exit", "Stop RdpWall and quit")
 
 	// Start the protection engine.
@@ -233,6 +235,8 @@ func onReady(q *rdpwall.Quantom) {
 					mStartup.Check()
 				}
 			}
+		case <-mUnbanAll.ClickedCh:
+			go q.UnbanAll()
 		case <-mExit.ClickedCh:
 			systray.Quit()
 			return

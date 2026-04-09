@@ -357,3 +357,36 @@ func (q *Quantom) UnblockIP(ip string) error {
 
 	return q.storage.UnblockIP(ip)
 }
+
+// UnbanAll removes every firewall rule created by RdpWall and clears the
+// storage. It is idempotent — calling it when nothing is banned is a no-op.
+func (q *Quantom) UnbanAll() {
+	blockedIPs, err := q.storage.BlockedIPs()
+	if err != nil {
+		fmt.Printf("[%s] UNBAN ALL ERROR: could not read blocked IPs: %v\n", logTime(), err)
+		return
+	}
+
+	if len(blockedIPs) == 0 {
+		fmt.Printf("[%s] UNBAN ALL: nothing to unban\n", logTime())
+		return
+	}
+
+	fmt.Printf("[%s] UNBAN ALL: removing %d blocked IP(s)...\n", logTime(), len(blockedIPs))
+
+	failed := 0
+	for _, ip := range blockedIPs {
+		if err := q.UnblockIP(ip); err != nil {
+			fmt.Printf("[%s] UNBAN ALL ERROR: %s: %v\n", logTime(), ip, err)
+			failed++
+		} else {
+			fmt.Printf("[%s] UNBAN ALL: unblocked %s\n", logTime(), ip)
+		}
+	}
+
+	if failed == 0 {
+		fmt.Printf("[%s] UNBAN ALL: done — all IPs unblocked\n", logTime())
+	} else {
+		fmt.Printf("[%s] UNBAN ALL: done — %d succeeded, %d failed\n", logTime(), len(blockedIPs)-failed, failed)
+	}
+}
