@@ -15,6 +15,7 @@ type Storage interface {
 	BlockedIPs() ([]string, error)
 	removePendingIP(ip string) error
 	BlockIP(ip string) error
+	UnblockIP(ip string) error
 }
 
 type Data struct {
@@ -197,4 +198,19 @@ func (s *FileStorage) removePendingIP(ip string) error {
 	s.data.PendingIPsToBeBlocked = newPendingIPs
 
 	return nil
+}
+
+func (s *FileStorage) UnblockIP(ip string) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	var newBlockedIPs []string
+	for _, blockedIP := range s.data.BlockedIPs {
+		if blockedIP != ip {
+			newBlockedIPs = append(newBlockedIPs, blockedIP)
+		}
+	}
+	s.data.BlockedIPs = newBlockedIPs
+
+	return s.removePendingIP(ip)
 }
