@@ -322,6 +322,19 @@ func (q *Quantom) PendBlockIPs() {
 }
 
 func (q *Quantom) BlockIP(ip string) error {
+	// Guard against duplicate firewall rules: if the IP is already tracked as
+	// blocked in storage, the rule exists — skip the netsh add.
+	blocked, err := q.storage.BlockedIPs()
+	if err != nil {
+		return fmt.Errorf("BlockIP: read storage: %w", err)
+	}
+	for _, b := range blocked {
+		if b == ip {
+			fmt.Printf("[%s] FIREWALL SKIP: %s already blocked\n", logTime(), ip)
+			return nil
+		}
+	}
+
 	cmd := exec.Command("netsh",
 		"advfirewall",
 		"firewall",
@@ -332,8 +345,7 @@ func (q *Quantom) BlockIP(ip string) error {
 		"action=block",
 		"remoteip="+ip)
 
-	err := cmd.Run()
-	if err != nil {
+	if err := cmd.Run(); err != nil {
 		return err
 	}
 
